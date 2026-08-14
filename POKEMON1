@@ -1,0 +1,200 @@
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Scanner;
+
+public class PokemonAPI 
+{
+
+    public static String getStringValue(String json, String key)
+    {
+        String searchKey = "\"" + key + "\"";
+
+        int keyIndex = json.indexOf(searchKey);
+        if (keyIndex == -1) 
+        {
+            return "Not found";
+        }
+
+        int colonIndex = json.indexOf(":", keyIndex);
+
+        if (colonIndex == -1)
+        {
+            return "Not found";
+        }
+
+        int firstQuote = json.indexOf("\"", colonIndex);
+
+        if (firstQuote == -1)
+        {
+            return "Not found";
+        }
+
+        int secondQuote = json.indexOf("\"", firstQuote + 1);
+
+        if (secondQuote == -1)
+        {
+            return "Not found";
+        }
+
+        return json.substring(firstQuote + 1, secondQuote);
+    }
+
+    public static String getNumberValue(String json, String key)
+     {
+        String searchKey = "\"" + key + "\"";
+
+        int keyIndex = json.indexOf(searchKey);
+
+        if (keyIndex == -1) 
+        {
+            return "Not found";
+        }
+
+        int colonIndex = json.indexOf(":", keyIndex);
+
+        if (colonIndex == -1)
+        {
+            return "Not found";
+        }
+
+        int start = colonIndex + 1;
+
+        while (start < json.length()
+                && Character.isWhitespace(json.charAt(start))) 
+        {
+            start++;
+        }
+
+        int end = start;
+
+        while (end < json.length()
+                && Character.isDigit(json.charAt(end)))
+        {
+            end++;
+        }
+
+        return json.substring(start, end);
+    }
+
+    public static void main(String[] args) 
+    
+    {
+
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("======================================");
+        System.out.println("       POKEMON API JAVA PROGRAM");
+        System.out.println("======================================");
+
+        System.out.print("Enter a Pokemon name: ");
+        String pokemonName = scanner.nextLine().trim().toLowerCase();
+
+        if (pokemonName.isEmpty()) 
+       {
+            System.out.println("Error: Pokemon name cannot be empty.");
+            scanner.close();
+            return;
+        }
+
+        try 
+        
+        {
+            String encodedName = URLEncoder
+                    .encode(pokemonName, StandardCharsets.UTF_8);
+
+            String apiUrl =
+                    "https://pokeapi.co/api/v2/pokemon/" + encodedName;
+
+            System.out.println("\nConnecting to:");
+            System.out.println(apiUrl);
+
+            URL url = new URL(apiUrl);
+
+            HttpURLConnection connection =
+                    (HttpURLConnection) url.openConnection();
+
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(10000);
+
+            int responseCode = connection.getResponseCode();
+
+            if (responseCode != HttpURLConnection.HTTP_OK) 
+            
+            {
+
+                System.out.println("\nAPI Request Failed.");
+                System.out.println("HTTP Response Code: " + responseCode);
+
+                if (responseCode == HttpURLConnection.HTTP_NOT_FOUND)
+                {
+                    System.out.println( "Error: Pokemon not found. " + "Please check the Pokemon name." );
+                }
+
+                connection.disconnect();
+                scanner.close();
+                return;
+            }
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream(),StandardCharsets.UTF_8)
+            );
+
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) 
+            
+            {
+                response.append(line);
+            }
+
+            reader.close();
+            connection.disconnect();
+
+            String jsonResponse = response.toString();
+
+            System.out.println("\n======================================");
+            System.out.println("           RAW JSON RESPONSE");
+            System.out.println("======================================");
+
+            System.out.println(jsonResponse);
+
+            String name = getStringValue(jsonResponse, "name");
+            String id = getNumberValue(jsonResponse, "id");
+            String height = getNumberValue(jsonResponse, "height");
+            String weight = getNumberValue(jsonResponse, "weight");
+            String baseExperience =
+            getNumberValue(jsonResponse, "base_experience");
+
+            System.out.println("\n======================================");
+            System.out.println("        EXTRACTED INFORMATION");
+            System.out.println("======================================");
+
+            System.out.println("Pokemon Name: " + name);
+            System.out.println("Pokemon ID: " + id);
+            System.out.println("Height: " + height + " decimeters");
+            System.out.println("Weight: " + weight + " hectograms");
+            System.out.println("Base Experience: " + baseExperience);
+
+            System.out.println("\nProgram completed successfully.");
+
+           } 
+        catch (Exception e) 
+        
+        {
+
+            System.out.println("\nAn error occurred.");
+            System.out.println("Error message: " + e.getMessage());
+
+        } 
+        
+        finally
+        
+         {
+            scanner.close();
+        }
+    }
+}
